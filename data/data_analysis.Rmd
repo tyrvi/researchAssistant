@@ -10,6 +10,8 @@ output: html_document
 Load utility functions.
 ```{r}
 source("utility.R")
+require(gmodels)
+require(ggplot2)
 ```
 
 Read the data into 2 data frames called gtex and tcga using the `MultiMerge` function from `utility.R`. Then merge them into one 
@@ -30,4 +32,21 @@ rownames(combined.data) = combined.data[,1]
 combined.data[,1:2] = NULL
 ```
 
+Remove rows with means close to 0
+```{r}
+combined.data.nozero = combined.data[-which(rowMeans(combined.data[,]) <= 0.01), ]
 
+# get gtex and tcga counts
+count.gtex = length(grep("GTEX*", colnames(combined.data.nozero)))
+count.tcga = length(grep("TCGA*", colnames(combined.data.nozero)))
+```
+
+PCA
+```{r}
+pc.obj = fast.prcomp(t(combined.data.nozero), center = FALSE, scale. = FALSE)
+perc = 100*(pc.obj$sdev)^2 / sum(pc.obj$sdev^2)
+```
+
+```{r}
+ggplot
+```
