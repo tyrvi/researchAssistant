@@ -48,5 +48,5 @@ perc = 100*(pc.obj$sdev)^2 / sum(pc.obj$sdev^2)
 ```
 
 ```{r}
-ggplot
+
 ```
