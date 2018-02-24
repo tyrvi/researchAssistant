@@ -1,0 +1,89 @@
+---
+title: "data_preprocessing"
+author: "Thais Minet"
+date: "1/26/2018"
+output: html_document
+---
+```
+$name_mapping{'BLCA'}='bladder'; #- Bladder Urothelial Carcinoma
+$name_mapping{'BRCA'}='breast'; #- Breast invasive carcinoma
+$name_mapping{'BRCA-T'}='breast-t'; #- Breast invasive carcinoma
+$name_mapping{'CESC'}='cervix uteri'; #- Cervical squamous cell carcinoma and endocervical adenocarcinoma
+$name_mapping{'CHOL'}='bile duct'; #- Cholangiocarcinoma
+$name_mapping{'COAD'}='colon'; #- Colon adenocarcinoma
+$name_mapping{'ESCA'}='esophagus'; #- Esophageal carcinoma
+$name_mapping{'HNSC'}=''; #- Head and Neck squamous cell carcinoma
+$name_mapping{'KICH'}='kidney'; #- Kidney Chromophobe
+$name_mapping{'KIRC'}='kidney'; #- Kidney renal clear cell carcinoma
+$name_mapping{'KIRP'}='kidney'; #- Kidney renal papillary cell carcinoma
+$name_mapping{'LIHC'}='liver'; #- Liver hepatocellular carcinoma
+$name_mapping{'LUAD'}='lung'; #- Lung adenocarcinoma
+$name_mapping{'LUSC'}='lung'; #- Lung squamous cell carcinoma
+$name_mapping{'PAAD'}='pancreas'; #- Pancreatic adenocarcinoma
+$name_mapping{'PCPG'}='adrenal'; #- Pheochromocytoma and Paraganglioma
+$name_mapping{'PRAD'}='prostate'; #- Prostate adenocarcinoma
+$name_mapping{'PRAD-T'}='prostate'; #- Prostate adenocarcinoma
+$name_mapping{'READ'}='rectum'; #- Rectum adenocarcinoma
+$name_mapping{'SARC'}='adipose'; #- Sarcoma
+$name_mapping{'SKCM'}='skin'; #- Skin Cutaneous Melanoma
+$name_mapping{'STAD'}='stomach'; #- Stomach adenocarcinoma
+$name_mapping{'STAD-T'}='stomach-t'; #- Stomach adenocarcinoma
+$name_mapping{'THCA'}='thyroid'; #- Thyroid carcinoma
+$name_mapping{'THYM'}='thymus'; #- Thymoma
+$name_mapping{'UCEC'}='uterus'; #- Uterine Corpus Endometrial Carcinoma
+```
+# Data Processing of RNA seq unnormalized data
+Load utility functions.
+```{r}
+source("utility.R")
+```
+
+### 1. Load & merge unnormalized data
+Read the data into 2 data frames called gtex and tcga using the `MultiMerge` function from `utility.R`. Then merge them into one 
+data frame.
+```{r}
+data.gtex = MultiMerge("unnormalized/gtex/")
+data.tcga = MultiMerge("unnormalized/tcga/")
+data.combined = merge(data.gtex, data.tcga, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
+```
+
+Remove the `Entrez_Gene_Id` column and set the `Hugo_Symbol` column to be the row names for each data frame
+```{r}
+rownames(data.gtex) = data.gtex[,1]
+data.gtex[,1:2] = NULL
+rownames(data.tcga) = data.tcga[,1]
+data.tcga[,1:2] = NULL
+rownames(data.combined) = data.combined[,1]
+data.combined[,1:2] = NULL
+```
+
+
+### 2. Remove rows with ~0 means
+```{r}
+data.combined = data.combined[-which(rowMeans(data.combined[,]) <= 0.01), ]
+
+# get gtex and tcga counts
+# count.gtex = length(grep("GTEX*", colnames(data.combined)))
+# count.tcga = length(grep("TCGA*", colnames(data.combined)))
+```
+
+
+### 3. Remove unwanted tissues
+Keep only bladder, breast, prostate and thyroid tissues
+```{r}
+
+```
+
+
+### 4. Take log(data + 1)
+```{r}
+
+```
+
+
+### 5. Compute PCA
+PCA
+```{r}
+# pc.obj = fast.prcomp(t(combined.data.nozero), center = FALSE, scale. = FALSE)
+# perc = 100*(pc.obj$sdev)^2 / sum(pc.obj$sdev^2)
+```
