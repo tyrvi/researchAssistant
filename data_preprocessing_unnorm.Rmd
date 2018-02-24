@@ -42,9 +42,78 @@ source("utility.R")
 Read the data into 2 data frames called gtex and tcga using the `MultiMerge` function from `utility.R`. Then merge them into one 
 data frame.
 ```{r}
-data.gtex = MultiMerge("unnormalized/gtex/")
-data.tcga = MultiMerge("unnormalized/tcga/")
-data.combined = merge(data.gtex, data.tcga, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
+# paths and file names of unnormalized, bladder, breast, prostate and thyroid tissue samples
+# path.gtex = "data/unnormalized/gtex"
+# path.tcga = "data/unnormalized/tcga"
+# file.names.gtex = c("bladder-rsem-fpkm-gtex.txt", "breast-rsem-fpkm-gtex.txt", "prostate-rsem-fpkm-gtex.txt", "thyroid-rsem-fpkm-gtex.txt")
+# file.names.tcga = c("blca-rsem-fpkm-tcga.txt", "brca-rsem-fpkm-tcga.txt", "prad-rsem-fpkm-tcga.txt", "thca-rsem-fpkm-tcga.txt")
+# 
+# # load and merge unnormalized data
+# data.gtex = FileMultiMerge(file.names.gtex, path.gtex)
+# data.tcga = FileMultiMerge(file.names.tcga, path.tcga)
+# data.combined = merge(data.gtex, data.tcga, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
+```
+
+Read the data and merge the data frames
+```{r}
+# load gtex data
+gtex.bladder = read.table(file = "data/unnormalized/gtex/bladder-rsem-fpkm-gtex.txt", header = TRUE)
+len = length(gtex.bladder)
+colnames(gtex.bladder)[3:len] = make.names(rep(c("GTEX.bladder"), len-2), unique = TRUE)
+
+gtex.breast = read.table(file = "data/unnormalized/gtex/breast-rsem-fpkm-gtex.txt", header = TRUE)
+len = length(gtex.breast)
+colnames(gtex.breast)[3:len] = make.names(rep(c("GTEX.breast"), len-2), unique = TRUE)
+
+gtex.prostate = read.table(file = "data/unnormalized/gtex/prostate-rsem-fpkm-gtex.txt", header = TRUE)
+len = length(gtex.prostate)
+colnames(gtex.prostate)[3:len] = make.names(rep(c("GTEX.prostate"), len-2), unique = TRUE)
+
+gtex.thyroid = read.table(file = "data/unnormalized/gtex/thyroid-rsem-fpkm-gtex.txt", header = TRUE)
+len = length(gtex.thyroid)
+colnames(gtex.thyroid)[3:len] = make.names(rep(c("GTEX.thyroid"), len-2), unique = TRUE)
+
+# load tcga tissues
+tcga.bladder = read.table(file = "data/unnormalized/tcga/blca-rsem-fpkm-tcga.txt", header = TRUE)
+len = length(tcga.bladder)
+colnames(tcga.bladder)[3:len] = make.names(rep(c("TCGA.bladder"), len-2), unique = TRUE)
+
+tcga.breast = read.table(file = "data/unnormalized/tcga/brca-rsem-fpkm-tcga.txt", header = TRUE)
+len = length(tcga.breast)
+colnames(tcga.breast)[3:len] = make.names(rep(c("TCGA.breast"), len-2), unique = TRUE)
+
+tcga.prostate = read.table(file = "data/unnormalized/tcga/prad-rsem-fpkm-tcga.txt", header = TRUE)
+len = length(tcga.prostate)
+colnames(tcga.prostate)[3:len] = make.names(rep(c("TCGA.prostate"), len-2), unique = TRUE)
+
+tcga.thyroid = read.table(file = "data/unnormalized/tcga/thca-rsem-fpkm-tcga.txt", header = TRUE)
+len = length(tcga.thyroid)
+colnames(tcga.thyroid)[3:len] = make.names(rep(c("TCGA.thyroid"), len-2), unique = TRUE)
+
+data.list.gtex = list(gtex.bladder, gtex.breast, gtex.prostate, gtex.thyroid)
+data.list.tcga = list(tcga.bladder, tcga.breast, tcga.prostate, tcga.thyroid)
+data.list = list(gtex.bladder, gtex.breast, gtex.prostate, gtex.thyroid, tcga.bladder, tcga.breast, tcga.prostate, tcga.thyroid)
+
+# clean up
+rm(gtex.bladder, gtex.breast, gtex.prostate, gtex.thyroid, tcga.bladder, tcga.breast, tcga.prostate, tcga.thyroid, len)
+
+# merge gtex data
+data.gtex = Reduce(function(x, y) {
+    merge(x, y, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
+  }, data.list.gtex)
+
+# merge tcga data
+data.tcga = Reduce(function(x, y) {
+    merge(x, y, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
+  }, data.list.tcga)
+
+# merge all data
+data = Reduce(function(x, y) {
+    merge(x, y, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
+  }, data.list)
+
+# clean up
+rm(data.list, data.list.gtex, data.list.tcga)
 ```
 
 Remove the `Entrez_Gene_Id` column and set the `Hugo_Symbol` column to be the row names for each data frame
@@ -53,37 +122,94 @@ rownames(data.gtex) = data.gtex[,1]
 data.gtex[,1:2] = NULL
 rownames(data.tcga) = data.tcga[,1]
 data.tcga[,1:2] = NULL
-rownames(data.combined) = data.combined[,1]
-data.combined[,1:2] = NULL
+rownames(data) = data[,1]
+data[,1:2] = NULL
 ```
 
 
 ### 2. Remove rows with ~0 means
 ```{r}
-data.combined = data.combined[-which(rowMeans(data.combined[,]) <= 0.01), ]
+data.gtex = data.gtex[-which(rowMeans(data.gtex[,]) <= 0.01), ]
+data.tcga = data.tcga[-which(rowMeans(data.tcga[,]) <= 0.01), ]
+data = data[-which(rowMeans(data[,]) <= 0.01), ]
 
-# get gtex and tcga counts
-# count.gtex = length(grep("GTEX*", colnames(data.combined)))
-# count.tcga = length(grep("TCGA*", colnames(data.combined)))
+# create data frame of tissue counts get gtex and tcga counts
+count.gtex = length(grep("GTEX*", colnames(data)))
+count.tcga = length(grep("TCGA*", colnames(data)))
+count.gtex.bladder = length(grep("GTEX.bladder*", colnames(data)))
+count.gtex.breast = length(grep("GTEX.breast*", colnames(data)))
+count.gtex.prostate = length(grep("GTEX.prostate*", colnames(data)))
+count.gtex.thyroid = length(grep("GTEX.thyroid*", colnames(data)))
+count.tcga.bladder = length(grep("TCGA.bladder*", colnames(data)))
+count.tcga.breast = length(grep("TCGA.breast*", colnames(data)))
+count.tcga.prostate = length(grep("TCGA.prostate*", colnames(data)))
+count.tcga.thyroid = length(grep("TCGA.thyroid*", colnames(data)))
+
+# count.names = c("total", "bladder", "breast", "prostate", "thyroid")
+
+
+counts = data.frame(total = c(count.gtex, count.tcga), bladder = c(count.gtex.bladder, count.tcga.bladder), breast = c(count.gtex.breast, count.tcga.breast),
+                    prostate = c(count.gtex.prostate, count.tcga.prostate), thyroid = c(count.gtex.thyroid, count.tcga.thyroid), row.names = c("GTEX", "TCGA"))
+
+rm(count.gtex, count.tcga, count.gtex.bladder, count.gtex.breast, count.gtex.prostate, count.gtex.thyroid, 
+   count.tcga.bladder, count.tcga.breast, count.tcga.prostate, count.tcga.thyroid)
 ```
 
 
-### 3. Remove unwanted tissues
-Keep only bladder, breast, prostate and thyroid tissues
+### 3. Take log(data + 1)
 ```{r}
-
+data.log.gtex = log2(data.gtex + 1)
+data.log.tcga = log2(data.tcga + 1)
+data.log = log2(data + 1)
 ```
 
 
-### 4. Take log(data + 1)
+### 4. Normalize data
 ```{r}
-
+data.norm = t(scale(t(data.log), center = TRUE, scale = TRUE))
 ```
 
 
-### 5. Compute PCA
+### 5. Compute PCA and plot
 PCA
 ```{r}
-# pc.obj = fast.prcomp(t(combined.data.nozero), center = FALSE, scale. = FALSE)
-# perc = 100*(pc.obj$sdev)^2 / sum(pc.obj$sdev^2)
+data.log.pc = fast.prcomp(t(data.log), center = FALSE, scale = FALSE)
+data.log.perc = 100*(data.log.pc$sdev)^2 / sum(data.log.pc$sdev^2)
+
+data.norm.pc = fast.prcomp(t(data.norm), center = FALSE, scale = FALSE)
+data.norm.perc = 100*(data.norm.pc$sdev)^2 / sum(data.norm.pc$sdev^2)
+```
+
+Plot PCA
+```{r}
+shapes = c(rep(0, counts["GTEX", "total"]), rep(19, counts["TCGA", "total"]))
+colors = c(rep("indianred", counts["GTEX", "bladder"]), rep("pink", counts["GTEX", "breast"]), 
+           rep("dodgerblue", counts["GTEX", "prostate"]), rep("forestgreen", counts["GTEX", "thyroid"]), 
+           rep("indianred", counts["TCGA", "bladder"]), rep("pink", counts["TCGA", "breast"]), 
+           rep("dodgerblue", counts["TCGA", "prostate"]), rep("forestgreen", counts["TCGA", "thyroid"]))
+
+# plot unnormalized log transformed data
+layout(rbind(1,2), heights=c(10,1))
+par(mar=c(2.75,3.75,2,1.25), mgp=c(2,1,0))
+par(xpd=TRUE)
+
+plot(data.log.pc$x[,1], data.log.pc$x[,2], pch=shapes, col=colors, xlab="PC1", ylab="PC2", main="Log2 transformed")
+par(mar=c(0, 0, 0, 0))
+plot.new()
+legend("bottomright", legend=c("Bladder", "Breast", "Prostate", "Thyroid"), col=c("indianred", "pink", "dodgerblue", "forestgreen"), 
+       cex=1, pch=20, ncol=(4), bty="n")
+legend("bottomleft", legend=c("GTEX","TCGA"), col="black", pch=c(0, 19), ncol=2, bty="n")
+
+
+# plot normalized log transformed data
+layout(rbind(1,2), heights=c(10,1))
+par(mar=c(2.75, 3.75, 2, 1.25), mgp=c(2, 1, 0))
+par(xpd=TRUE)
+
+plot(data.norm.pc$x[,1], data.norm.pc$x[,2], pch=shapes, col=colors, xlab="PC1", ylab="PC2", main="Log2 transformed & Z-score")
+par(mar=c(0, 0, 0, 0))
+plot.new()
+legend("bottomright", legend=c("Bladder", "Breast", "Prostate", "Thyroid"), col=c("indianred", "pink", "dodgerblue", "forestgreen"), 
+       cex=1, pch=20, ncol=(4), bty="n")
+legend("bottomleft", legend=c("GTEX","TCGA"), col="black", pch=c(0, 19), ncol=2, bty="n")
 ```
