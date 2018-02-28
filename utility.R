@@ -9,7 +9,7 @@ require(preprocessCore)
 
 
 rnaObj <- setClass("rnaObj", slots =
-                     c(data = "data.frame", tissue = "vector", study = "vector", counts = "data.frame",
+                     c(data = "data.frame", tissue = "vector", study = "vector", counts = "data.frame", meta = "data.frame",
                        pca.scores = "data.frame", pca.load = "data.frame", percentage = "vector"))
 
 
@@ -19,13 +19,14 @@ setMethod("initialize", "rnaObj",
           function(object, min.expression = 0.01, keep.tissue = c(), log = FALSE, normalize = FALSE, center = TRUE, scale = TRUE) {
             print("Initializing S4 object")
             tmp = object@data
-            # print(dim(tmp))
+            print(dim(tmp))
             
             # remove unwanted tissues
             if (length(keep.tissue) != 0) {
               print("removing unwanted tissues")
               cols.use = unlist(lapply(keep.tissue, function(x) colnames(data)[grep(x, colnames(data))]))
               tmp = tmp[, cols.use]
+              print(dim(tmp))
               rm(cols.use)
             }
             
@@ -60,6 +61,7 @@ setMethod("initialize", "rnaObj",
             print("calculating tissue counts")
             object@study = factor(unlist(lapply(colnames(object@data), function(x) unlist(strsplit(x, "\\.")[1][1])[1])))
             object@tissue = factor(unlist(lapply(colnames(object@data), function(x) unlist(strsplit(x, "\\.")[1][1])[2])))
+            object@meta = data.frame(study = object@study, tissue = object@tissue)
             
             study.table = table(object@study)
             tissue.table = table(object@tissue)
@@ -95,16 +97,49 @@ setGeneric("doPCA", function(object, pcs.store = 100) standardGeneric("doPCA"))
 setMethod("doPCA", "rnaObj",
           function(object, pcs.store=100) {
             data.use = object@data
-            pca.obj = fast.prcomp(t(data.use), center = FALSE, scale = FALSE)
-            perc = 100*(pc.obj$sdev)^2 / sum(pc.obj$sdev^2)
-
-            object@percentage = (100*(pc.obj$sdev)^2 / sum(pc.obj$sdev^2))[1:pcs.store]
-            object@pca.scores = data.frame(pca.obj$x[ ,1:pcs.store])
-            object@pca.load = data.frame(pca.obj$rotation[ ,1:pcs.store])
             
-            rm(perc, pca.obj)
+            pca.obj = fast.prcomp(t(data.use), center = FALSE, scale = FALSE)
+            
+            object@pca.scores = data.frame(pca.obj$x[ ,1:pcs.store])
+            object@pca.load = data.frame(pca.obj$rotation[ , 1:pcs.store])
+            
+            object@percentage = (100*(pca.obj$sdev)^2 / sum(pca.obj$sdev^2))[1:pcs.store]
+            
+            # perc = 100*(pca.obj$sdev)^2 / sum(pca.obj$sdev^2)
+            
+            rm(pca.obj)
 
             return(object)
+          })
+
+
+setGeneric("scatterPlot", function(object) standardGeneric("scatterPlot"))
+setMethod("scatterPlot", "rnaObj",
+          function(object) {
+            # shapes = c(rep(0, object@counts["total", "GTEX"]), rep(19, object@counts["total", "TCGA"]))
+            # colors = c(rep("pink", object@counts["breast", "GTEX"]), rep("dodgerblue", object@counts["prostate", "GTEX"]), 
+            #            rep("forestgreen", object@counts["thyroid", "GTEX"]), rep("pink", object@counts["breast", "TCGA"]),
+            #            rep("dodgerblue", object@counts["prostate", "TCGA"]), rep("forestgreen", object@counts["thyroid", "TCGA"]))
+            # 
+            # layout(rbind(1,2), heights=c(10,1))
+            # par(mar=c(2.75,3.75,2,1.25), mgp=c(2,1,0))
+            # par(xpd=TRUE)
+            # 
+            # plot(object@pca.scores[,1], object@pca.scores[,2], pch=shapes, col=colors, xlab="PC1", ylab="PC2", main="")
+            # par(mar=c(0, 0, 0, 0))
+            # plot.new()
+            # legend("bottomright", legend=c("Breast", "Prostate", "Thyroid"), col=c("pink", "dodgerblue", "forestgreen"), 
+            #        cex=1, pch=20, ncol=(4), bty="n")
+            # legend("bottomleft", legend=c("GTEX","TCGA"), col="black", pch=c(0, 19), ncol=2, bty="n")
+            
+            
+            tissue = factor(object@tissue)
+            study = factor(object@study)
+            
+            # ggplot(object@pca.scores, aes(x = PC1, y = PC2, shape = study, colour = tissue), size = 2) + 
+            #   geom_point(aes(colour = tissue), size = 2) + scale_color_hue(l = 55) + theme_bw()
+            ggplot(object@pca.scores, aes(x = PC1, y = PC2, shape = study, colour = tissue)) + 
+              geom_point(size = 3) + scale_color_hue(l = 55) + theme_bw() + guides(colour = guide_legend(order = 2), shape = guide_legend(order = 2))
           })
 
 
