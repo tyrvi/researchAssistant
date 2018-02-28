@@ -6,6 +6,7 @@ require(sva)
 require(RANN)
 require(reshape)
 require(preprocessCore)
+require(tsne)
 
 
 rnaObj <- setClass("rnaObj", slots =
@@ -13,10 +14,10 @@ rnaObj <- setClass("rnaObj", slots =
                        pca.scores = "data.frame", pca.load = "data.frame", percentage = "vector"))
 
 
-setGeneric("initialize", function(object, min.expression = 0.01, keep.tissue = c(), log = FALSE, normalize = FALSE, center = TRUE, scale = TRUE) 
+setGeneric("initialize", function(object, min.expression = 0.01, keep.tissue = c(), log = FALSE, qn = FALSE, normalize = FALSE, center = TRUE, scale = TRUE) 
   standardGeneric("initialize"))
 setMethod("initialize", "rnaObj",
-          function(object, min.expression = 0.01, keep.tissue = c(), log = FALSE, normalize = FALSE, center = TRUE, scale = TRUE) {
+          function(object, min.expression = 0.01, keep.tissue = c(), log = FALSE, qn = FALSE, normalize = FALSE, center = TRUE, scale = TRUE) {
             print("Initializing S4 object")
             tmp = object@data
             print(dim(tmp))
@@ -24,7 +25,7 @@ setMethod("initialize", "rnaObj",
             # remove unwanted tissues
             if (length(keep.tissue) != 0) {
               print("removing unwanted tissues")
-              cols.use = unlist(lapply(keep.tissue, function(x) colnames(data)[grep(x, colnames(data))]))
+              cols.use = unlist(lapply(keep.tissue, function(x) colnames(tmp)[grep(x, colnames(tmp))]))
               tmp = tmp[, cols.use]
               print(dim(tmp))
               rm(cols.use)
@@ -33,7 +34,7 @@ setMethod("initialize", "rnaObj",
             # gene filtering
             # remove genes with row means less than min expression level
             print("removing genes below mean expression level")
-            # tmp = tmp[-which(rowMeans(tmp[,]) <= min.expression), ]
+            tmp = tmp[which(rowMeans(tmp[,]) > min.expression), ]
             print(dim(tmp))
             
             # if log then take log of data
@@ -43,16 +44,19 @@ setMethod("initialize", "rnaObj",
             }
             
             # if normalize is true then do quantile normalization
-            if (normalize) {
-              print("applying quantile normalization per gene")
-              # tmp = t(scale(t(tmp),  center = center, scale = scale))
-              tmp.rownames = rownames(tmp)
-              tmp.colnames = colnames(tmp)
-              tmp = normalize.quantiles(as.matrix(tmp))
-              tmp = data.frame(tmp, row.names = tmp.rownames)
-              colnames(tmp) = tmp.colnames
-              
-              rm(tmp.rownames, tmp.colnames)
+            if (qn || normalize) {
+              if (qn) {
+                print("applying quantile normalization per gene")
+                tmp.rownames = rownames(tmp)
+                tmp.colnames = colnames(tmp)
+                tmp = normalize.quantiles(as.matrix(tmp))
+                tmp = data.frame(tmp, row.names = tmp.rownames)
+                colnames(tmp) = tmp.colnames
+                rm(tmp.rownames, tmp.colnames)
+              } else {
+                print("applying z-score")
+                tmp = t(scale(t(tmp),  center = center, scale = scale))
+              }
             }
             
             object@data = data.frame(tmp)
@@ -87,8 +91,6 @@ setMethod("initialize", "rnaObj",
             object@counts = count
             rm(count, total.gtex, total.tcga, count.gtex, count.tcga, unique.tissues, total.row, study.table, tissue.table, gtex.tissues, tcga.tissues)
             
-            # print(dim(object@data))
-            
             return(object)
           })
 
@@ -105,41 +107,23 @@ setMethod("doPCA", "rnaObj",
             
             object@percentage = (100*(pca.obj$sdev)^2 / sum(pca.obj$sdev^2))[1:pcs.store]
             
-            # perc = 100*(pca.obj$sdev)^2 / sum(pca.obj$sdev^2)
-            
             rm(pca.obj)
 
             return(object)
           })
 
-
-setGeneric("scatterPlot", function(object) standardGeneric("scatterPlot"))
+setGeneric("scatterPlot", function(object, title = "") standardGeneric("scatterPlot"))
 setMethod("scatterPlot", "rnaObj",
-          function(object) {
-            # shapes = c(rep(0, object@counts["total", "GTEX"]), rep(19, object@counts["total", "TCGA"]))
-            # colors = c(rep("pink", object@counts["breast", "GTEX"]), rep("dodgerblue", object@counts["prostate", "GTEX"]), 
-            #            rep("forestgreen", object@counts["thyroid", "GTEX"]), rep("pink", object@counts["breast", "TCGA"]),
-            #            rep("dodgerblue", object@counts["prostate", "TCGA"]), rep("forestgreen", object@counts["thyroid", "TCGA"]))
-            # 
-            # layout(rbind(1,2), heights=c(10,1))
-            # par(mar=c(2.75,3.75,2,1.25), mgp=c(2,1,0))
-            # par(xpd=TRUE)
-            # 
-            # plot(object@pca.scores[,1], object@pca.scores[,2], pch=shapes, col=colors, xlab="PC1", ylab="PC2", main="")
-            # par(mar=c(0, 0, 0, 0))
-            # plot.new()
-            # legend("bottomright", legend=c("Breast", "Prostate", "Thyroid"), col=c("pink", "dodgerblue", "forestgreen"), 
-            #        cex=1, pch=20, ncol=(4), bty="n")
-            # legend("bottomleft", legend=c("GTEX","TCGA"), col="black", pch=c(0, 19), ncol=2, bty="n")
-            
-            
+          function(object, title = "") {
             tissue = factor(object@tissue)
             study = factor(object@study)
             
-            # ggplot(object@pca.scores, aes(x = PC1, y = PC2, shape = study, colour = tissue), size = 2) + 
-            #   geom_point(aes(colour = tissue), size = 2) + scale_color_hue(l = 55) + theme_bw()
             ggplot(object@pca.scores, aes(x = PC1, y = PC2, shape = study, colour = tissue)) + 
-              geom_point(size = 3) + scale_color_hue(l = 55) + theme_bw() + guides(colour = guide_legend(order = 2), shape = guide_legend(order = 2))
+              geom_point(size = 2) + scale_color_hue(l = 55) + 
+              theme_bw() + 
+              guides(colour = guide_legend(order = 2), shape = guide_legend(order = 2)) +
+              ggtitle(title) + 
+              theme(plot.title = element_text(hjust = 0.5, lineheight=.8, face="bold"))
           })
 
 
