@@ -92,6 +92,8 @@ colnames(tcga.thyroid)[3:len] = make.names(rep(c("TCGA.thyroid"), len-2), unique
 
 data.list.gtex = list(gtex.bladder, gtex.breast, gtex.prostate, gtex.thyroid)
 data.list.tcga = list(tcga.bladder, tcga.breast, tcga.prostate, tcga.thyroid)
+data.list.nobladder = list(gtex.breast, gtex.prostate, gtex.thyroid, tcga.breast, tcga.prostate, tcga.thyroid)
+data.list.nobreast = list(gtex.bladder, gtex.prostate, gtex.thyroid, tcga.bladder, tcga.prostate, tcga.thyroid)
 data.list = list(gtex.bladder, gtex.breast, gtex.prostate, gtex.thyroid, tcga.bladder, tcga.breast, tcga.prostate, tcga.thyroid)
 
 # clean up
@@ -107,23 +109,39 @@ data.tcga = Reduce(function(x, y) {
     merge(x, y, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
   }, data.list.tcga)
 
+data.nobladder = Reduce(function(x, y) {
+    merge(x, y, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
+  }, data.list.nobladder)
+
+data.nobreast = Reduce(function(x, y) {
+    merge(x, y, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
+  }, data.list.nobreast)
+
 # merge all data
 data = Reduce(function(x, y) {
     merge(x, y, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
   }, data.list)
 
 # clean up
-rm(data.list, data.list.gtex, data.list.tcga)
+rm(data.list, data.list.gtex, data.list.tcga, data.list.nobladder, data.list.nobreast)
 ```
 
 Remove the `Entrez_Gene_Id` column and set the `Hugo_Symbol` column to be the row names for each data frame
 ```{r}
 rownames(data.gtex) = data.gtex[,1]
 data.gtex[,1:2] = NULL
+
 rownames(data.tcga) = data.tcga[,1]
 data.tcga[,1:2] = NULL
+
 rownames(data) = data[,1]
 data[,1:2] = NULL
+
+rownames(data.nobladder) = data.nobladder[,1]
+data.nobladder[,1:2] = NULL
+
+rownames(data.nobreast) = data.nobreast[,1]
+data.nobreast[,1:2] = NULL
 ```
 
 
@@ -132,6 +150,8 @@ data[,1:2] = NULL
 data.gtex = data.gtex[-which(rowMeans(data.gtex[,]) <= 0.01), ]
 data.tcga = data.tcga[-which(rowMeans(data.tcga[,]) <= 0.01), ]
 data = data[-which(rowMeans(data[,]) <= 0.01), ]
+data.nobladder = data.nobladder[-which(rowMeans(data.nobladder[,]) <= 0.01), ]
+data.nobreast = data.nobreast[-which(rowMeans(data.nobreast[,]) <= 0.01), ]
 
 # create data frame of tissue counts get gtex and tcga counts
 count.gtex = length(grep("GTEX*", colnames(data)))
@@ -161,12 +181,16 @@ rm(count.gtex, count.tcga, count.gtex.bladder, count.gtex.breast, count.gtex.pro
 data.log.gtex = log2(data.gtex + 1)
 data.log.tcga = log2(data.tcga + 1)
 data.log = log2(data + 1)
+data.nobladder.log = log2(data.nobladder + 1)
+data.nobreast.log = log2(data.nobreast + 1)
 ```
 
 
 ### 4. Normalize data
 ```{r}
 data.norm = t(scale(t(data.log), center = TRUE, scale = TRUE))
+data.nobladder.norm = t(scale(t(data.nobladder.log), center = TRUE, scale = TRUE))
+data.nobreast.norm = t(scale(t(data.nobreast.log), center = TRUE, scale = TRUE))
 ```
 
 
@@ -178,6 +202,12 @@ data.log.perc = 100*(data.log.pc$sdev)^2 / sum(data.log.pc$sdev^2)
 
 data.norm.pc = fast.prcomp(t(data.norm), center = FALSE, scale = FALSE)
 data.norm.perc = 100*(data.norm.pc$sdev)^2 / sum(data.norm.pc$sdev^2)
+
+data.nobladder.pc = fast.prcomp(t(data.nobladder.norm), center = FALSE, scale = FALSE)
+data.nobladder.perc = 100*(data.nobladder.pc$sdev)^2 / sum(data.nobladder.pc$sdev^2)
+
+data.nobreast.pc = fast.prcomp(t(data.nobreast.norm), center = FALSE, scale = FALSE)
+data.nobreast.perc = 100*(data.nobreast.pc$sdev)^2 / sum(data.nobreast.pc$sdev^2)
 ```
 
 Plot PCA
@@ -210,6 +240,49 @@ plot(data.norm.pc$x[,1], data.norm.pc$x[,2], pch=shapes, col=colors, xlab="PC1",
 par(mar=c(0, 0, 0, 0))
 plot.new()
 legend("bottomright", legend=c("Bladder", "Breast", "Prostate", "Thyroid"), col=c("indianred", "pink", "dodgerblue", "forestgreen"), 
+       cex=1, pch=20, ncol=(4), bty="n")
+legend("bottomleft", legend=c("GTEX","TCGA"), col="black", pch=c(0, 19), ncol=2, bty="n")
+```
+
+Plot data exlcuding bladder samples
+```{r}
+shapes.nobladder = c(rep(0, counts["GTEX", "total"]-counts["GTEX", "bladder"]), rep(19, counts["TCGA", "total"]-counts["TCGA", "bladder"]))
+colors.nobladder = c(rep("pink", counts["GTEX", "breast"]), 
+           rep("dodgerblue", counts["GTEX", "prostate"]), rep("forestgreen", counts["GTEX", "thyroid"]), 
+           rep("pink", counts["TCGA", "breast"]), 
+           rep("dodgerblue", counts["TCGA", "prostate"]), rep("forestgreen", counts["TCGA", "thyroid"]))
+
+# plot normalized log transformed data
+layout(rbind(1,2), heights=c(10,1))
+par(mar=c(2.75, 3.75, 2, 1.25), mgp=c(2, 1, 0))
+par(xpd=TRUE)
+
+plot(data.nobladder.pc$x[,1], data.nobladder.pc$x[,2], pch=shapes.nobladder, col=colors.nobladder, xlab="PC1", ylab="PC2", main="Log2 transformed & Z-score")
+par(mar=c(0, 0, 0, 0))
+plot.new()
+legend("bottomright", legend=c("Breast", "Prostate", "Thyroid"), col=c("pink", "dodgerblue", "forestgreen"), 
+       cex=1, pch=20, ncol=(4), bty="n")
+legend("bottomleft", legend=c("GTEX","TCGA"), col="black", pch=c(0, 19), ncol=2, bty="n")
+
+```
+
+Plot data excluding breast
+```{r}
+shapes.nobreast = c(rep(0, counts["GTEX", "total"]-counts["GTEX", "breast"]), rep(19, counts["TCGA", "total"]-counts["TCGA", "breast"]))
+colors.nobreast = c(rep("indianred", counts["GTEX", "bladder"]),  
+           rep("dodgerblue", counts["GTEX", "prostate"]), rep("forestgreen", counts["GTEX", "thyroid"]), 
+           rep("indianred", counts["TCGA", "bladder"]), 
+           rep("dodgerblue", counts["TCGA", "prostate"]), rep("forestgreen", counts["TCGA", "thyroid"]))
+
+# plot normalized log transformed data
+layout(rbind(1,2), heights=c(10,1))
+par(mar=c(2.75, 3.75, 2, 1.25), mgp=c(2, 1, 0))
+par(xpd=TRUE)
+
+plot(data.nobreast.pc$x[,1], data.nobreast.pc$x[,2], pch=shapes.nobreast, col=colors.nobreast, xlab="PC1", ylab="PC2", main="Log2 transformed & Z-score")
+par(mar=c(0, 0, 0, 0))
+plot.new()
+legend("bottomright", legend=c("Bladder", "Prostate", "Thyroid"), col=c("indianred", "dodgerblue", "forestgreen"), 
        cex=1, pch=20, ncol=(4), bty="n")
 legend("bottomleft", legend=c("GTEX","TCGA"), col="black", pch=c(0, 19), ncol=2, bty="n")
 ```
