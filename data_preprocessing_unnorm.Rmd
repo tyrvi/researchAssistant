@@ -4,6 +4,7 @@ author: "Thais Minet"
 date: "1/26/2018"
 output: html_document
 ---
+
 ```
 $name_mapping{'BLCA'}='bladder'; #- Bladder Urothelial Carcinoma
 $name_mapping{'BRCA'}='breast'; #- Breast invasive carcinoma
@@ -32,6 +33,7 @@ $name_mapping{'THCA'}='thyroid'; #- Thyroid carcinoma
 $name_mapping{'THYM'}='thymus'; #- Thymoma
 $name_mapping{'UCEC'}='uterus'; #- Uterine Corpus Endometrial Carcinoma
 ```
+
 # Data Processing of RNA seq unnormalized data
 Load utility functions.
 ```{r}
@@ -39,22 +41,9 @@ source("utility.R")
 ```
 
 ### 1. Load & merge unnormalized data
-Read the data into 2 data frames called gtex and tcga using the `MultiMerge` function from `utility.R`. Then merge them into one 
-data frame.
-```{r}
-# paths and file names of unnormalized, bladder, breast, prostate and thyroid tissue samples
-# path.gtex = "data/unnormalized/gtex"
-# path.tcga = "data/unnormalized/tcga"
-# file.names.gtex = c("bladder-rsem-fpkm-gtex.txt", "breast-rsem-fpkm-gtex.txt", "prostate-rsem-fpkm-gtex.txt", "thyroid-rsem-fpkm-gtex.txt")
-# file.names.tcga = c("blca-rsem-fpkm-tcga.txt", "brca-rsem-fpkm-tcga.txt", "prad-rsem-fpkm-tcga.txt", "thca-rsem-fpkm-tcga.txt")
-# 
-# # load and merge unnormalized data
-# data.gtex = FileMultiMerge(file.names.gtex, path.gtex)
-# data.tcga = FileMultiMerge(file.names.tcga, path.tcga)
-# data.combined = merge(data.gtex, data.tcga, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
-```
-
 Read the data and merge the data frames
+
+#### Load GTEX
 ```{r}
 # load gtex data
 gtex.bladder = read.table(file = "data/unnormalized/gtex/bladder-rsem-fpkm-gtex.txt", header = TRUE)
@@ -65,14 +54,37 @@ gtex.breast = read.table(file = "data/unnormalized/gtex/breast-rsem-fpkm-gtex.tx
 len = length(gtex.breast)
 colnames(gtex.breast)[3:len] = make.names(rep(c("GTEX.breast"), len-2), unique = TRUE)
 
+gtex.cervix = read.table(file = "data/unnormalized/gtex/cervix-rsem-fpkm-gtex.txt", header = TRUE)
+len = length(gtex.cervix)
+colnames(gtex.cervix)[3:len] = make.names(rep(c("GTEX.cervix"), len-2), unique = TRUE)
+
+gtex.colon = read.table(file = "data/unnormalized/gtex/colon-rsem-fpkm-gtex.txt", header = TRUE)
+len = length(gtex.colon)
+colnames(gtex.colon)[3:len] = make.names(rep(c("GTEX.colon"), len-2), unique = TRUE)
+
+gtex.liver = read.table(file = "data/unnormalized/gtex/liver-rsem-fpkm-gtex.txt", header = TRUE)
+len = length(gtex.liver)
+colnames(gtex.liver)[3:len] = make.names(rep(c("GTEX.liver"), len-2), unique = TRUE)
+
 gtex.prostate = read.table(file = "data/unnormalized/gtex/prostate-rsem-fpkm-gtex.txt", header = TRUE)
 len = length(gtex.prostate)
 colnames(gtex.prostate)[3:len] = make.names(rep(c("GTEX.prostate"), len-2), unique = TRUE)
+
+gtex.stomach = read.table(file = "data/unnormalized/gtex/stomach-rsem-fpkm-gtex.txt", header = TRUE)
+len = length(gtex.stomach)
+colnames(gtex.stomach)[3:len] = make.names(rep(c("GTEX.stomach"), len-2), unique = TRUE)
 
 gtex.thyroid = read.table(file = "data/unnormalized/gtex/thyroid-rsem-fpkm-gtex.txt", header = TRUE)
 len = length(gtex.thyroid)
 colnames(gtex.thyroid)[3:len] = make.names(rep(c("GTEX.thyroid"), len-2), unique = TRUE)
 
+gtex.uterus = read.table(file = "data/unnormalized/gtex/uterus-rsem-fpkm-gtex.txt", header = TRUE)
+len = length(gtex.uterus)
+colnames(gtex.uterus)[3:len] = make.names(rep(c("GTEX.uterus"), len-2), unique = TRUE)
+```
+
+#### Load TCGA
+```{r}
 # load tcga tissues
 tcga.bladder = read.table(file = "data/unnormalized/tcga/blca-rsem-fpkm-tcga.txt", header = TRUE)
 len = length(tcga.bladder)
@@ -82,22 +94,46 @@ tcga.breast = read.table(file = "data/unnormalized/tcga/brca-rsem-fpkm-tcga.txt"
 len = length(tcga.breast)
 colnames(tcga.breast)[3:len] = make.names(rep(c("TCGA.breast"), len-2), unique = TRUE)
 
+tcga.cervix = read.table(file = "data/unnormalized/tcga/cesc-rsem-fpkm-tcga.txt", header = TRUE)
+len = length(tcga.cervix)
+colnames(tcga.cervix)[3:len] = make.names(rep(c("TCGA.cervix"), len-2), unique = TRUE)
+
+tcga.colon = read.table(file = "data/unnormalized/tcga/coad-rsem-fpkm-tcga.txt", header = TRUE)
+len = length(tcga.colon)
+colnames(tcga.colon)[3:len] = make.names(rep(c("TCGA.colon"), len-2), unique = TRUE)
+
+tcga.liver = read.table(file = "data/unnormalized/tcga/lihc-rsem-fpkm-tcga.txt", header = TRUE)
+len = length(tcga.liver)
+colnames(tcga.liver)[3:len] = make.names(rep(c("TCGA.liver"), len-2), unique = TRUE)
+
 tcga.prostate = read.table(file = "data/unnormalized/tcga/prad-rsem-fpkm-tcga.txt", header = TRUE)
 len = length(tcga.prostate)
 colnames(tcga.prostate)[3:len] = make.names(rep(c("TCGA.prostate"), len-2), unique = TRUE)
+
+tcga.stomach = read.table(file = "data/unnormalized/tcga/stad-rsem-fpkm-tcga.txt", header = TRUE)
+len = length(tcga.stomach)
+colnames(tcga.stomach)[3:len] = make.names(rep(c("TCGA.stomach"), len-2), unique = TRUE)
 
 tcga.thyroid = read.table(file = "data/unnormalized/tcga/thca-rsem-fpkm-tcga.txt", header = TRUE)
 len = length(tcga.thyroid)
 colnames(tcga.thyroid)[3:len] = make.names(rep(c("TCGA.thyroid"), len-2), unique = TRUE)
 
-data.list.gtex = list(gtex.bladder, gtex.breast, gtex.prostate, gtex.thyroid)
-data.list.tcga = list(tcga.bladder, tcga.breast, tcga.prostate, tcga.thyroid)
-data.list.nobladder = list(gtex.breast, gtex.prostate, gtex.thyroid, tcga.breast, tcga.prostate, tcga.thyroid)
-data.list.nobreast = list(gtex.bladder, gtex.prostate, gtex.thyroid, tcga.bladder, tcga.prostate, tcga.thyroid)
-data.list = list(gtex.bladder, gtex.breast, gtex.prostate, gtex.thyroid, tcga.bladder, tcga.breast, tcga.prostate, tcga.thyroid)
+tcga.uterus = read.table(file = "data/unnormalized/tcga/ucec-rsem-fpkm-tcga.txt", header = TRUE)
+len = length(tcga.uterus)
+colnames(tcga.uterus)[3:len] = make.names(rep(c("TCGA.uterus"), len-2), unique = TRUE)
+```
+
+
+#### Combine data into one data frame
+```{r}
+data.list.gtex = list(gtex.bladder, gtex.breast, gtex.cervix, gtex.colon, gtex.liver, gtex.prostate, gtex.stomach, gtex.thyroid, gtex.uterus)
+data.list.tcga = list(tcga.bladder, tcga.breast, tcga.cervix, tcga.colon, tcga.liver, tcga.prostate, tcga.stomach, tcga.thyroid, tcga.uterus)
+data.list = list(gtex.bladder, gtex.breast, gtex.cervix, gtex.colon, gtex.liver, gtex.prostate, gtex.stomach, gtex.thyroid, gtex.uterus,
+                 tcga.bladder, tcga.breast, tcga.cervix, tcga.colon, tcga.liver, tcga.prostate, tcga.stomach, tcga.thyroid, tcga.uterus)
 
 # clean up
-rm(gtex.bladder, gtex.breast, gtex.prostate, gtex.thyroid, tcga.bladder, tcga.breast, tcga.prostate, tcga.thyroid, len)
+rm(gtex.bladder, gtex.breast, gtex.cervix, gtex.colon, gtex.liver, gtex.prostate, gtex.stomach, gtex.thyroid, gtex.uterus,
+  tcga.bladder, tcga.breast, tcga.cervix, tcga.colon, tcga.liver, tcga.prostate, tcga.stomach, tcga.thyroid, tcga.uterus, len)
 
 # merge gtex data
 data.gtex = Reduce(function(x, y) {
@@ -109,22 +145,15 @@ data.tcga = Reduce(function(x, y) {
     merge(x, y, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
   }, data.list.tcga)
 
-data.nobladder = Reduce(function(x, y) {
-    merge(x, y, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
-  }, data.list.nobladder)
-
-data.nobreast = Reduce(function(x, y) {
-    merge(x, y, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
-  }, data.list.nobreast)
-
 # merge all data
 data = Reduce(function(x, y) {
     merge(x, y, by=c('Hugo_Symbol', 'Entrez_Gene_Id'))
   }, data.list)
 
 # clean up
-rm(data.list, data.list.gtex, data.list.tcga, data.list.nobladder, data.list.nobreast)
+rm(data.list, data.list.gtex, data.list.tcga)
 ```
+
 
 Remove the `Entrez_Gene_Id` column and set the `Hugo_Symbol` column to be the row names for each data frame
 ```{r}
@@ -136,22 +165,16 @@ data.tcga[,1:2] = NULL
 
 rownames(data) = data[,1]
 data[,1:2] = NULL
-
-rownames(data.nobladder) = data.nobladder[,1]
-data.nobladder[,1:2] = NULL
-
-rownames(data.nobreast) = data.nobreast[,1]
-data.nobreast[,1:2] = NULL
 ```
 
 
+
+DO NOT DO THIS
 ### 2. Remove rows with ~0 means
 ```{r}
 data.gtex = data.gtex[-which(rowMeans(data.gtex[,]) <= 0.01), ]
 data.tcga = data.tcga[-which(rowMeans(data.tcga[,]) <= 0.01), ]
 data = data[-which(rowMeans(data[,]) <= 0.01), ]
-data.nobladder = data.nobladder[-which(rowMeans(data.nobladder[,]) <= 0.01), ]
-data.nobreast = data.nobreast[-which(rowMeans(data.nobreast[,]) <= 0.01), ]
 
 # create data frame of tissue counts get gtex and tcga counts
 count.gtex = length(grep("GTEX*", colnames(data)))
