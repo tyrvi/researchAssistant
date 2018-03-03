@@ -1,0 +1,105 @@
+---
+title: "breast_bladder_thyroid_preprocessing"
+author: "Thais Minet"
+date: "3/3/2018"
+output: html_document
+---
+
+# Preprocessing of RNA-seq data
+
+
+### Load Utility functions
+```{r}
+source("utility.R")
+```
+
+
+### Data preprocessing
+
+Load all of the unnormalized data into `data`.
+```{r}
+file = "data/all-unnorm.csv"
+data = read.csv(file, header = TRUE, row.names = 1)
+rm(file)
+print(dim(data))
+```
+
+```{r}
+data[1:5, 1:2]
+```
+
+Load the data into the S4 `rnaObj`.
+```{r}
+data = rnaObj(data = data)
+```
+
+Now we initialize the object choosing the tissues we want to analyze and prepare for the neural network. The tissues available are `bladder`, `breast`, `cervix`, `colon`, `liver`, `prostate`, `stomach`, `thyroid` and `uterus`. To select only a subset of the tissues provide a vector to the initialization function that specifies which tissues to keep e.g. `initialize(data, keep.tissue = c("bladder", "breast", "thyroid"))`. By default no transformation are applied to the data when it is initialized. To apply a log transformation set `log = TRUE`. To apply z-score set `normalize = TRUE`. To quantile normalize set `qn = TRUE`.
+```{r}
+tissues = c("breast", "prostate", "thyroid")
+
+data = initialize(data, keep.tissue = tissues)
+data.log = initialize(data, keep.tissue = tissues, log = TRUE)
+data.norm = initialize(data, keep.tissue = tissues, log = TRUE, normalize = TRUE)
+data.qn = initialize(data, keep.tissue = tissues, log = TRUE, qn = TRUE)
+```
+
+Display how many of each tissue we have.
+```{r}
+print(data@counts)
+```
+
+
+### PCA & Scatterplot
+Compute PCA of each object.
+```{r}
+data = doPCA(data)
+data.log = doPCA(data.log)
+data.norm = doPCA(data.norm)
+data.qn = doPCA(data.qn)
+```
+
+
+Do a scatter plot of the data to visualize.
+```{r}
+scatterPlot(data, title = "Unnormalized data")
+scatterPlot(data.log, title = "Unnormalized log transformed data")
+scatterPlot(data.norm, title = "Unnormalized log transformed and z-scored data")
+scatterPlot(data.qn, title = "Unnormalized log transformed and quantile normalized data")
+```
+
+
+### Split data into GTEX and TCGA batches for input to neural network.
+```{r}
+log.gtex = data.log@pca.scores[grep("GTEX", rownames(data.log@pca.scores)), ]
+log.tcga = data.log@pca.scores[grep("TCGA", rownames(data.log@pca.scores)), ]
+
+norm.gtex = data.norm@pca.scores[grep("GTEX", rownames(data.norm@pca.scores)), ]
+norm.tcga = data.norm@pca.scores[grep("TCGA", rownames(data.norm@pca.scores)), ]
+
+qn.gtex = data.qn@pca.scores[grep("GTEX", rownames(data.qn@pca.scores)), ]
+qn.tcga = data.qn@pca.scores[grep("TCGA", rownames(data.qn@pca.scores)), ]
+```
+
+### Write PCA data to file for input to neural network
+Write respective batches
+```{r}
+write.csv(log.gtex[, 1:20], file = "data/processed/unnorm-log-20PC-GTEX-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(log.tcga[, 1:20], file = "data/processed/unnorm-log-20PC-TCGA-breast-prostate-thyroid.csv", row.names = TRUE)
+
+write.csv(norm.gtex[, 1:20], file = "data/processed/unnorm-norm-20PC-GTEX-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(norm.tcga[, 1:20], file = "data/processed/unnorm-norm-20PC-TCGA-breast-prostate-thyroid.csv", row.names = TRUE)
+
+write.csv(qn.gtex[, 1:20], file = "data/processed/unnorm-qn-20PC-GTEX-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(qn.tcga[, 1:20], file = "data/processed/unnorm-qn-20PC-TCGA-breast-prostate-thyroid.csv", row.names = TRUE)
+
+rm(log.gtex, log.tcga, norm.gtex, norm.tcga, qn.gtex, qn.tcga)
+```
+
+
+Write complete data frame
+```{r}
+write.csv(data@pca.scores[, 1:20], file = "data/processed/unnorm-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(data.log@pca.scores[, 1:20], file = "data/processed/unnorm-log-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(data.norm@pca.scores[, 1:20], file = "data/processed/unnorm-norm-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(data.qn@pca.scores[, 1:20], file = "data/processed/unnorm-qn-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
+```
