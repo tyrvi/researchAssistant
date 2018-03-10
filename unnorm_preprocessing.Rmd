@@ -41,6 +41,11 @@ data = initialize(data, keep.tissue = tissues)
 data.log = initialize(data, keep.tissue = tissues, log = TRUE)
 data.norm = initialize(data, keep.tissue = tissues, log = TRUE, normalize = TRUE)
 data.qn = initialize(data, keep.tissue = tissues, log = TRUE, qn = TRUE)
+
+# data = initialize(data)
+# data.log = initialize(data, log = TRUE)
+# data.norm = initialize(data, log = TRUE, normalize = TRUE)
+# data.qn = initialize(data, log = TRUE, qn = TRUE)
 ```
 
 Display how many of each tissue we have.
@@ -70,27 +75,27 @@ scatterPlot(data.qn, title = "Unnormalized log transformed and quantile normaliz
 
 ### Split data into GTEX and TCGA batches for input to neural network.
 ```{r}
-log.gtex = data.log@pca.scores[grep("GTEX", rownames(data.log@pca.scores)), ]
-log.tcga = data.log@pca.scores[grep("TCGA", rownames(data.log@pca.scores)), ]
+log.gtex = data.log@pca.meta[grep("GTEX", rownames(data.log@pca.meta)), ]
+log.tcga = data.log@pca.meta[grep("TCGA", rownames(data.log@pca.meta)), ]
 
-norm.gtex = data.norm@pca.scores[grep("GTEX", rownames(data.norm@pca.scores)), ]
-norm.tcga = data.norm@pca.scores[grep("TCGA", rownames(data.norm@pca.scores)), ]
+norm.gtex = data.norm@pca.meta[grep("GTEX", rownames(data.norm@pca.meta)), ]
+norm.tcga = data.norm@pca.meta[grep("TCGA", rownames(data.norm@pca.meta)), ]
 
-qn.gtex = data.qn@pca.scores[grep("GTEX", rownames(data.qn@pca.scores)), ]
-qn.tcga = data.qn@pca.scores[grep("TCGA", rownames(data.qn@pca.scores)), ]
+qn.gtex = data.qn@pca.meta[grep("GTEX", rownames(data.qn@pca.meta)), ]
+qn.tcga = data.qn@pca.meta[grep("TCGA", rownames(data.qn@pca.meta)), ]
 ```
 
 ### Write PCA data to file for input to neural network
 Write respective batches
 ```{r}
-write.csv(log.gtex[, 1:20], file = "data/processed/unnorm-log-20PC-GTEX-breast-prostate-thyroid.csv", row.names = TRUE)
-write.csv(log.tcga[, 1:20], file = "data/processed/unnorm-log-20PC-TCGA-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(log.gtex[, 1:22], file = "data/processed/unnorm-log-20PC-GTEX-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(log.tcga[, 1:22], file = "data/processed/unnorm-log-20PC-TCGA-breast-prostate-thyroid.csv", row.names = TRUE)
 
-write.csv(norm.gtex[, 1:20], file = "data/processed/unnorm-norm-20PC-GTEX-breast-prostate-thyroid.csv", row.names = TRUE)
-write.csv(norm.tcga[, 1:20], file = "data/processed/unnorm-norm-20PC-TCGA-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(norm.gtex[, 1:22], file = "data/processed/unnorm-norm-20PC-GTEX-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(norm.tcga[, 1:22], file = "data/processed/unnorm-norm-20PC-TCGA-breast-prostate-thyroid.csv", row.names = TRUE)
 
-write.csv(qn.gtex[, 1:20], file = "data/processed/unnorm-qn-20PC-GTEX-breast-prostate-thyroid.csv", row.names = TRUE)
-write.csv(qn.tcga[, 1:20], file = "data/processed/unnorm-qn-20PC-TCGA-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(qn.gtex[, 1:22], file = "data/processed/unnorm-qn-20PC-GTEX-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(qn.tcga[, 1:22], file = "data/processed/unnorm-qn-20PC-TCGA-breast-prostate-thyroid.csv", row.names = TRUE)
 
 rm(log.gtex, log.tcga, norm.gtex, norm.tcga, qn.gtex, qn.tcga)
 ```
@@ -98,8 +103,8 @@ rm(log.gtex, log.tcga, norm.gtex, norm.tcga, qn.gtex, qn.tcga)
 
 Write complete data frame
 ```{r}
-write.csv(data@pca.scores[, 1:20], file = "data/processed/unnorm-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
-write.csv(data.log@pca.scores[, 1:20], file = "data/processed/unnorm-log-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
-write.csv(data.norm@pca.scores[, 1:20], file = "data/processed/unnorm-norm-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
-write.csv(data.qn@pca.scores[, 1:20], file = "data/processed/unnorm-qn-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(data@pca.scores[, 1:22], file = "data/processed/unnorm-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(data.log@pca.scores[, 1:22], file = "data/processed/unnorm-log-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(data.norm@pca.scores[, 1:22], file = "data/processed/unnorm-norm-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
+write.csv(data.qn@pca.scores[, 1:22], file = "data/processed/unnorm-qn-20PC-df-breast-prostate-thyroid.csv", row.names = TRUE)
 ```

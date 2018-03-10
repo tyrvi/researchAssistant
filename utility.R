@@ -11,7 +11,7 @@ require(tsne)
 
 rnaObj <- setClass("rnaObj", slots =
                      c(data = "data.frame", tissue = "vector", study = "vector", counts = "data.frame", meta = "data.frame",
-                       pca.scores = "data.frame", pca.load = "data.frame", percentage = "vector"))
+                       pca.scores = "data.frame", pca.load = "data.frame", pca.meta = "data.frame", percentage = "vector"))
 
 
 setGeneric("initialize", function(object, min.expression = 0.01, keep.tissue = c(), log = FALSE, qn = FALSE, normalize = FALSE, center = TRUE, scale = TRUE) 
@@ -107,7 +107,14 @@ setMethod("doPCA", "rnaObj",
             
             object@percentage = (100*(pca.obj$sdev)^2 / sum(pca.obj$sdev^2))[1:pcs.store]
             
-            rm(pca.obj)
+            pca.meta = object@pca.scores
+            pca.meta[, 'study'] = object@study
+            pca.meta[, 'tissue'] = object@tissue
+            
+            pca.meta = arrange.vars(pca.meta, c("study"=1, "tissue"=2))
+            object@pca.meta = pca.meta
+            
+            rm(pca.obj, pca.meta)
 
             return(object)
           })
@@ -126,6 +133,37 @@ setMethod("scatterPlot", "rnaObj",
               theme(plot.title = element_text(hjust = 0.5, lineheight=.8, face="bold"))
           })
 
+
+##arrange df vars by position
+##'vars' must be a named vector, e.g. c("var.name"=1)
+arrange.vars = function(data, vars){
+  ##stop if not a data.frame (but should work for matrices as well)
+  stopifnot(is.data.frame(data))
+  
+  ##sort out inputs
+  data.nms = names(data)
+  var.nr = length(data.nms)
+  var.nms = names(vars)
+  var.pos = vars
+  ##sanity checks
+  stopifnot( !any(duplicated(var.nms)), 
+             !any(duplicated(var.pos)) )
+  stopifnot( is.character(var.nms), 
+             is.numeric(var.pos) )
+  stopifnot( all(var.nms %in% data.nms) )
+  stopifnot( all(var.pos > 0), 
+             all(var.pos <= var.nr) )
+  
+  ##prepare output
+  out.vec = character(var.nr)
+  out.vec[var.pos] = var.nms
+  out.vec[-var.pos] = data.nms[ !(data.nms %in% var.nms) ]
+  stopifnot( length(out.vec)==var.nr )
+  
+  ##re-arrange vars by position
+  data = data[ , out.vec]
+  return(data)
+}
 
 # Loads and merges RNA data from a list of file names and paths
 FileMultiMerge = function(file.names, path) {
