@@ -7,10 +7,37 @@ output: html_document
 
 # Preprocessing of RNA-seq data
 
+***
+> p = paran(data.log@data, iterations = 500)
+
+Using eigendecomposition of correlation matrix.
+Computing: 10%  20%  30%  40%  50%  60%  70%  80%  90%  100%
+
+
+Results of Horn's Parallel Analysis for component retention
+500 iterations, using the mean estimate
+
+-------------------------------------------------- 
+Component   Adjusted    Unadjusted    Estimated 
+            Eigenvalue  Eigenvalue    Bias 
+-------------------------------------------------- 
+1         776.43023  776.879466      0.449227
+2          16.617828   17.060942      0.443114
+3           8.873398    9.312026      0.438628
+4           6.466199    6.901024      0.434824
+5           3.831106    4.262450      0.431343
+6           1.155209    1.583063      0.427853
+-------------------------------------------------- 
+
+Adjusted eigenvalues > 1 indicate dimensions to retain.
+(6 components retained)
+***
+
 
 ### Load Utility functions
 ```{r}
 source("utility.R")
+library("paran")
 ```
 
 
