@@ -99,6 +99,39 @@ scatterPlot(data.norm, title = "Unnormalized log transformed and z-scored data")
 scatterPlot(data.qn, title = "Unnormalized log transformed and quantile normalized data")
 ```
 
+Do combat things
+```{r}
+annotation = data.log@meta
+rownames(annoation) = colnames(data.log@data)
+
+batch = data.log@meta$study
+design = model.matrix(~1, data = data.log@meta)
+combat = ComBat(dat = data.log@data, batch = batch, mod = design, par.prior = TRUE)
+
+pheatmap(cor(data.log@data, method='spearman'), main="after combat", show_rownames = FALSE, show_colnames = FALSE, annotation = annotation, annotation_row = annotation, annotation_legend = TRUE)
+pheatmap(cor(combat, method='spearman'), main="after combat", show_rownames = FALSE, show_colnames = FALSE, annotation = annotation, annotation_row = annotation, annotation_legend = TRUE)
+
+combat.pc = fast.prcomp(t(combat), center = FALSE, scale = FALSE)
+
+combat.pc.scores = data.frame(combat.pc$x[ ,1:100])
+combat.pc.load = data.frame(combat.pc$rotation[ , 1:100])
+combat.pc.percentage = (100*(combat.pc$sdev)^2 / sum(combat.pc$sdev^2))[1:100]
+
+combat.pc.meta = combat.pc.scores
+combat.pc.meta[, 'study'] = data.log@study
+combat.pc.meta[, 'tissue'] = data.log@tissue
+combat.pc.meta = arrange.vars(combat.pc.meta, c("study"=1, "tissue"=2))
+
+tissue = factor(data.log@tissue)
+study = factor(data.log@study)
+
+ggplot(combat.pc.scores, aes(x = PC1, y = PC2, shape = study, colour = tissue)) + 
+              geom_point(size = 2) + scale_color_hue(l = 55) + 
+              theme_bw() + 
+              guides(colour = guide_legend(order = 2), shape = guide_legend(order = 2)) +
+              ggtitle("Unnormalized log transformed with ComBat") + 
+              theme(plot.title = element_text(hjust = 0.5, lineheight=.8, face="bold"))
+```
 
 ### Split data into GTEX and TCGA batches for input to neural network.
 ```{r}
